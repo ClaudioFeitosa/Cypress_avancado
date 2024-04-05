@@ -1,3 +1,5 @@
+const { ne } = require('faker/lib/locales')
+
 describe('Hacker Stories', () => {
   beforeEach(() => {
 
@@ -68,15 +70,6 @@ describe('Hacker Stories', () => {
 
       it('orders by points', () => {})
     })
-
-    // Hrm, how would I simulate such errors?
-    // Since I still don't know, the tests are being skipped.
-    // TODO: Find a way to test them out.
-    context.skip('Errors', () => {
-      it('shows "Something went wrong ..." in case of a server error', () => {})
-
-      it('shows "Something went wrong ..." in case of a network error', () => {})
-    })
   })
 
   context('Search', () => {
@@ -124,6 +117,17 @@ describe('Hacker Stories', () => {
         .should('be.visible')
     })
 
+    it('types and submits the form directly', () => {
+      cy.get('#search')
+        .should('be.visible')
+        .clear()
+        .type(newTerm)
+      cy.get('form').submit()
+      cy.wait('@getNewTermStories')
+
+      cy.get('.item').should('have.length', 20)
+    })
+
     context('Last searches', () => {
       it('searches via the last searched term - refatorado', () => {
         cy.get('#search')
@@ -146,7 +150,7 @@ describe('Hacker Stories', () => {
       })
 
       Cypress._.times(5, () => {
-        it.only('shows a max of 5 buttons for the last searched terms - reaftorado', () => {
+        it('shows a max of 5 buttons for the last searched terms - reaftorado', () => {
           const faker = require('faker')
   
           cy.intercept(
@@ -159,13 +163,42 @@ describe('Hacker Stories', () => {
               .clear()
               .type(`${faker.random.word()}{enter}`)          
             cy.wait('@getRandomStories')  
-          })
-  
-  
+          })  
           cy.get('.last-searches button')
             .should('have.length', 5)
         })
       })      
     })
+  })  
+})
+
+context.only('Errors', () => {
+  it('shows "Something went wrong ..." in case of a server error', () => {
+    cy.intercept (
+      'GET',
+      '**/search**',
+      {statusCode: 500}
+    ).as ('getServerFailure')
+    cy.visit('/')
+    cy.wait('@getServerFailure')
+    cy.get('p:contains(Something went wrong ...)')
+      .should('be.visible')
   })
+   
+
+  it('shows "Something went wrong ..." in case of a network error', () => {
+    cy.intercept (
+      'GET',
+      '**/search**',
+      { forceNetworkError: true }
+    ).as('getNetWorkError')
+
+    cy.visit('/')
+    cy.wait('@getNetWorkError')
+
+    cy.get('p:contains(Something went wrong ...)')  
+      .should('be.visible')
+
+  })
+
 })
